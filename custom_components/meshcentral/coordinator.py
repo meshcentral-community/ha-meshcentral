@@ -175,6 +175,7 @@ class MeshCentralCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             ssl=ssl_ctx,
             headers=headers,
             timeout=aiohttp.ClientTimeout(total=None),  # keep-alive forever
+            heartbeat=30,
         ) as ws:
             opened = asyncio.get_event_loop().time()
             _LOGGER.debug("MeshCentral event WS connected (persistent control.ashx)")

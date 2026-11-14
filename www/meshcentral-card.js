@@ -1,7 +1,30 @@
 class MeshCentralCard extends HTMLElement {
   set hass(hass) {
     this._hass = hass;
+    if (!this._config || !this._config.devices) return;
+    const stateKey = this._getDevicesStateKey(hass);
+    if (stateKey === this._lastStateKey) return;
+    this._lastStateKey = stateKey;
     this._render();
+  }
+
+  _getDevicesStateKey(hass) {
+    if (!hass || !this._config?.devices) return "";
+    return this._config.devices.map(name => {
+      const slug = name.toLowerCase().replace(/[^a-z0-9]/g, "_");
+      return [
+        hass.states[`binary_sensor.${slug}_online`]?.state,
+        hass.states[`sensor.${slug}_ip_address`]?.state,
+        hass.states[`sensor.${slug}_active_users`]?.state,
+        hass.states[`sensor.${slug}_last_boot`]?.state,
+        hass.states[`binary_sensor.${slug}_antivirus_ok`]?.state,
+        hass.states[`binary_sensor.${slug}_firewall_ok`]?.state,
+        hass.states[`binary_sensor.${slug}_defender_real_time_protection`]?.state,
+        hass.states[`sensor.${slug}_cpu`]?.state,
+        hass.states[`sensor.${slug}_ram_total`]?.state,
+        hass.states[`sensor.${slug}_disk_c_free_2`]?.state || hass.states[`sensor.${slug}_disk_c_free`]?.state
+      ].join(":");
+    }).join("|");
   }
 
   setConfig(config) {
@@ -40,7 +63,7 @@ class MeshCentralCard extends HTMLElement {
       ].filter(Boolean).join(" ");
 
       const bootTime = lastBoot?.state && lastBoot.state !== "unavailable"
-        ? new Date(lastBoot.state).toLocaleDateString("da-DK", {day:"2-digit",month:"short"})
+        ? new Date(lastBoot.state).toLocaleDateString(undefined, {day:"2-digit",month:"short"})
         : "";
 
       return `
@@ -56,7 +79,7 @@ class MeshCentralCard extends HTMLElement {
             ${users?.state && users.state!=="None" && users.state!=="unavailable" ? `<span class="detail">👤 ${users.state}</span>` : ""}
             ${bootTime ? `<span class="detail">🔄 ${bootTime}</span>` : ""}
           </div>
-          ${cpu?.state && cpu.state!=="unavailable" ? `<div class="hw-row">🖥 ${cpu.state}${ram?.state && ram.state!=="unavailable" ? ` · ${ram.state} GB RAM` : ""}${diskFree?.state && diskFree.state!=="unavailable" ? ` · ${diskFree.state} GB ledig` : ""}</div>` : ""}
+          ${cpu?.state && cpu.state!=="unavailable" ? `<div class="hw-row">🖥 ${cpu.state}${ram?.state && ram.state!=="unavailable" ? ` · ${ram.state} GB RAM` : ""}${diskFree?.state && diskFree.state!=="unavailable" ? ` · ${diskFree.state} GB free` : ""}</div>` : ""}
           ${securityBadges ? `<div class="security-row">${securityBadges}</div>` : ""}
           ` : ""}
         </div>`;
